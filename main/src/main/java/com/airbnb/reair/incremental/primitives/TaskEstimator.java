@@ -84,20 +84,20 @@ public class TaskEstimator {
     Table tableOnDest = destMs.getTable(spec.getDbName(), spec.getTableName());
 
     // If the souce table doesn't exist but the destination table doesn't,
-    // then it's most likely a drop.
+    // then it's most likely a drop. 如果源表不存在但是目标表存在，很可能会drop操作。
     if (tableOnSrc == null && tableOnDest != null) {
       return new TaskEstimate(TaskEstimate.TaskType.DROP_TABLE, false, false, Optional.empty(),
           Optional.empty());
     }
 
-    // Nothing to do if the source table doesn't exist
+    // Nothing to do if the source table doesn't exist　如果源表不存在，不操作
     if (tableOnSrc == null) {
       return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
           Optional.empty());
     }
 
     // If both src and dest exist, and the dest is newer, and we don't overwrite newer partitions,
-    // then it's a NO_OP.
+    // then it's a NO_OP.　如果src/dest都存在，并且dest数据较新，那么我们不会覆盖较新的dest分区，而是不操作。默认为true覆盖
     if (!conf.getBoolean(ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER, true)) {
       if (ReplicationUtils.isSrcOlder(tableOnSrc, tableOnDest)) {
         LOG.warn(String.format(
