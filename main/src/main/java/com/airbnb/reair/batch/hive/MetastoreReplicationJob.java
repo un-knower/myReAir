@@ -592,7 +592,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
 
     protected void setup(Context context) throws IOException, InterruptedException {
       try {
-        worker.setup(context);
+        worker.setup(context); //初始化user配置，如src/dest metastore tables黑名单 等等。
       } catch (ConfigurationException e) {
         throw new IOException("Invalid configuration", e);
       }

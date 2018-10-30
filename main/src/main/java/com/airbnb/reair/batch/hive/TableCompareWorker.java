@@ -119,7 +119,7 @@ public class TableCompareWorker {
 
   protected List<String> processTable(final String db, final String table)
     throws IOException, HiveMetastoreException {
-    // If table and db matches black list, we will skip it.
+    // If table and db matches black list, we will skip it.　如果db.table　与黑名单匹配就返回空list
     if (Iterables.any(blackList,
           new Predicate<BlackListPair>() {
             @Override
@@ -130,7 +130,7 @@ public class TableCompareWorker {
       return Collections.emptyList();
     }
 
-    HiveObjectSpec spec = new HiveObjectSpec(db, table);
+    HiveObjectSpec spec = new HiveObjectSpec(db, table);//　描述hive表的说明类，包括dbName/tableName/partition
 
     // Table exists in source, but not in dest. It should copy the table.
     TaskEstimate estimate = estimator.analyze(spec);
