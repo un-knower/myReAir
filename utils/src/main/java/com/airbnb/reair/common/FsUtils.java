@@ -302,8 +302,7 @@ public class FsUtils {
    *
    * @throws IOException if there is an error accessing the filesystem
    */
-  public static boolean equalDirs(Configuration conf, Path src, Path dest,
-      Optional<PathFilter> filter, boolean compareModificationTimes) throws IOException {
+  public static boolean equalDirs(Configuration conf, Path src, Path dest, Optional<PathFilter> filter, boolean compareModificationTimes) throws IOException {
     boolean srcExists = src.getFileSystem(conf).exists(src);
     boolean destExists = dest.getFileSystem(conf).exists(dest);
 
@@ -331,30 +330,30 @@ public class FsUtils {
     LOG.debug("Size of " + src + " is " + srcSize);
     LOG.debug("Size of " + dest + " is " + destSize);
 
-    if (srcSize != destSize) {
+    if (srcSize != destSize) { //递归文件总大小
       LOG.debug(String.format("Size of %s and %s do not match!", src, dest));
       return false;
     }
 
-    if (srcFileSizes.size() != destFileSizes.size()) {
+    if (srcFileSizes.size() != destFileSizes.size()) { //文件数量是否一致
       LOG.warn(String.format("Number of files in %s (%d) and %s (%d) " + "do not match!", src,
           srcFileSizes.size(), dest, destFileSizes.size()));
       return false;
     }
 
     for (String file : srcFileSizes.keySet()) {
-      if (!destFileSizes.containsKey(file)) {
+      if (!destFileSizes.containsKey(file)) { //map-key　为表名的相对路径　dim_date/00001
         LOG.warn(String.format("%s missing from %s!", file, dest));
         return false;
       }
-      if (!srcFileSizes.get(file).equals(destFileSizes.get(file))) {
+      if (!srcFileSizes.get(file).equals(destFileSizes.get(file))) { // map-value 00001 的 size
         LOG.warn(String.format("Size mismatch between %s (%d) in %s " + "and %s (%d) in %s", file,
             srcFileSizes.get(file), src, file, destFileSizes.get(file), dest));
         return false;
       }
     }
 
-    if (compareModificationTimes) {
+    if (compareModificationTimes) { //比较修改时间
       Map<String, Long> srcFileModificationTimes = null;
       Map<String, Long> destFileModificationTimes = null;
 
@@ -366,7 +365,7 @@ public class FsUtils {
       }
 
       for (String file : srcFileModificationTimes.keySet()) {
-        if (!srcFileModificationTimes.get(file).equals(destFileModificationTimes.get(file))) {
+        if (!srcFileModificationTimes.get(file).equals(destFileModificationTimes.get(file))) { // map-value 00001 的修改时间
           LOG.warn(String.format(
               "Modification time mismatch between " + "%s (%d) in %s and %s (%d) in %s", file,
               srcFileModificationTimes.get(file), src, file, destFileModificationTimes.get(file),

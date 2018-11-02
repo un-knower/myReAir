@@ -123,7 +123,7 @@ public class TaskEstimator {
     Optional<Path> destPath = ReplicationUtils.getLocation(expectedDestTable);
 
     if (!isPartitionedTable && srcPath.isPresent() && !srcPath.equals(destPath)) {
-      updateData = !directoryCopier.equalDirs(srcPath.get(), destPath.get());
+      updateData = !directoryCopier.equalDirs(srcPath.get(), destPath.get()); //如果src文件与dest文件不同就更新
     }
 
     // See if we need to update the metadata
