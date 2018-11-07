@@ -89,8 +89,7 @@ public class CopyPartitionedTableTask implements ReplicationTask {
     // Check the table that exists already in the destination cluster
     Table existingTable = destMs.getTable(spec.getDbName(), spec.getTableName());
 
-    Table destTable =
-        objectModifier.createDestTable(srcCluster, destCluster, freshSrcTable, existingTable);
+    Table destTable = objectModifier.createDestTable(srcCluster, destCluster, freshSrcTable, existingTable);//我们想要的最新的desttable
 
 
     if (existingTable != null) {
@@ -119,8 +118,7 @@ public class CopyPartitionedTableTask implements ReplicationTask {
     MetadataAction action = MetadataAction.NOOP;
     if (existingTable == null) {
       action = MetadataAction.CREATE;
-    } else if (!ReplicationUtils.stripNonComparables(existingTable)
-        .equals(ReplicationUtils.stripNonComparables(destTable))) {
+    } else if (!ReplicationUtils.stripNonComparables(existingTable).equals(ReplicationUtils.stripNonComparables(destTable))) {
       action = MetadataAction.ALTER;
     }
 

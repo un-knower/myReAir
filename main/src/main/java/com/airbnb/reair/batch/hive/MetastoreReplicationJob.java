@@ -185,7 +185,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
    *                    ClassNotFoundException,
    *                    TemplateRenderException
    */
-  @SuppressWarnings("static-access")
+  @SuppressWarnings("static-access")    //入口
   public int run(String[] args) throws Exception {
     Options options = new Options();
 
@@ -219,7 +219,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
     CommandLine cl = null;
 
     try {
-      cl = parser.parse(options, args);
+      cl = parser.parse(options, args);//java Options解析参数
     } catch (ParseException e) {
       System.err.println("Encountered exception while parsing using GnuParser:\n" + e.getMessage());
       printUsage(USAGE_COMMAND_STR, options, System.out);
@@ -298,9 +298,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
           tableFilePath,
           tableListFileOnHdfs.get()));
       copyFile(localTableListFile.get(), tableListFileOnHdfs.get());
-      LOG.info(String.format("Copied %s to temporary directory %s",
-          tableFilePath,
-          tableListFileOnHdfs.get()));
+      LOG.info(String.format("Copied %s to temporary directory %s", tableFilePath, tableListFileOnHdfs.get()));
     } else {
       LOG.info("List of tables to copy is not specified. Copying all tables instead.");
     }
@@ -312,15 +310,15 @@ public class MetastoreReplicationJob extends Configured implements Tool {
       FsUtils.deleteDirectory(getConf(), step2Out);
       LOG.info("Deleting " + step3Out);
       FsUtils.deleteDirectory(getConf(), step3Out);
-
+// 开始运行 stage1
       if (runMetastoreCompareJob(tableListFileOnHdfs, step1Out) != 0) {
         return -1;
       }
-
+// 开始运行 stage2
       if (runHdfsCopyJob(step1Out, step2Out) != 0) {
         return -1;
       }
-
+// 开始运行 stage3
       if (runCommitChangeJob(step1Out, step3Out) != 0) {
         return -1;
       }
@@ -431,7 +429,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
 
     return result;
   }
-
+// stage1 job
   private int runMetastoreCompareJobWithTextInput(Path input, Path output)
     throws IOException, InterruptedException, ClassNotFoundException {
     Job job = Job.getInstance(this.getConf(), "Stage1: Metastore Compare Job with Input List");
@@ -442,8 +440,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
     job.setReducerClass(Stage1PartitionCompareReducer.class);
 
     FileInputFormat.setInputPaths(job, input);
-    FileInputFormat.setMaxInputSplitSize(job,
-        this.getConf().getLong(FileInputFormat.SPLIT_MAXSIZE, 60000L));
+    FileInputFormat.setMaxInputSplitSize(job, this.getConf().getLong(FileInputFormat.SPLIT_MAXSIZE, 60000L));
 
     job.setOutputKeyClass(LongWritable.class);
     job.setOutputValueClass(Text.class);
@@ -451,16 +448,14 @@ public class MetastoreReplicationJob extends Configured implements Tool {
     FileOutputFormat.setOutputPath(job, output);
     FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
 
-    job.setNumReduceTasks(getConf().getInt(
-        ConfigurationKeys.BATCH_JOB_METASTORE_PARALLELISM,
-        150));
+    job.setNumReduceTasks(getConf().getInt(ConfigurationKeys.BATCH_JOB_METASTORE_PARALLELISM, 150));
 
 
     boolean success = job.waitForCompletion(true);
 
     return success ? 0 : 1;
   }
-
+// stage2 job
   private int runHdfsCopyJob(Path input, Path output)
     throws IOException, InterruptedException, ClassNotFoundException, TemplateRenderException {
 
@@ -475,8 +470,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
 
     FileInputFormat.setInputPaths(job, input);
     FileInputFormat.setInputDirRecursive(job, true);
-    FileInputFormat.setMaxInputSplitSize(job,
-        this.getConf().getLong(FileInputFormat.SPLIT_MAXSIZE, 60000L));
+    FileInputFormat.setMaxInputSplitSize(job, this.getConf().getLong(FileInputFormat.SPLIT_MAXSIZE, 60000L));
 
     job.setOutputKeyClass(LongWritable.class);
     job.setOutputValueClass(Text.class);
@@ -499,7 +493,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
 
     return success ? 0 : 1;
   }
-
+// stage3 job
   private int runCommitChangeJob(Path input, Path output)
     throws IOException, InterruptedException, ClassNotFoundException, TemplateRenderException {
 
@@ -558,7 +552,7 @@ public class MetastoreReplicationJob extends Configured implements Tool {
 
     protected void setup(Context context) throws IOException, InterruptedException {
       try {
-        worker.setup(context);
+        worker.setup(context);//解析用户指定--config-files的xml文件，初始化黑名单(过滤表)及src/dest集群地址/metastore地址等等参数
       } catch (ConfigurationException e) {
         throw new IOException("Invalid configuration", e);
       }
@@ -585,9 +579,8 @@ public class MetastoreReplicationJob extends Configured implements Tool {
       worker.cleanup();
     }
   }
-
-  public static class Stage1ProcessTableMapperWithTextInput
-      extends Mapper<LongWritable, Text, LongWritable, Text> {
+//stage1 mapper
+  public static class Stage1ProcessTableMapperWithTextInput extends Mapper<LongWritable, Text, LongWritable, Text> {
     private TableCompareWorker worker = new TableCompareWorker();
 
     protected void setup(Context context) throws IOException, InterruptedException {
@@ -606,8 +599,8 @@ public class MetastoreReplicationJob extends Configured implements Tool {
           LOG.error(String.format("invalid input at line %d: %s", key.get(), value.toString()));
           return;
         }
-
-        for (String result : worker.processTable(columns[0], columns[1])) {
+// result制表符分隔: tasktype_name/isUpdateMetadata/isUpdateData/srcPaht/destPath/db_name/table_name/partiton_name
+        for (String result : worker.processTable(columns[0], columns[1])) { //遍历原因：表名可能是分区表
           context.write(new LongWritable((long)result.hashCode()), new Text(result));
         }
 

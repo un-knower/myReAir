@@ -64,15 +64,14 @@ public class TaskEstimator {
    * @throws IOException if there is an error accessing the filesystem
    */
   public TaskEstimate analyze(HiveObjectSpec spec) throws HiveMetastoreException, IOException {
-    if (!spec.isPartition()) {
+    if (!spec.isPartition()) { //stage1 的map肯定是非分区表
       return analyzeTableSpec(spec);
     } else {
       return analyzePartitionSpec(spec);
     }
   }
 
-  private TaskEstimate analyzeTableSpec(HiveObjectSpec spec)
-      throws HiveMetastoreException, IOException {
+  private TaskEstimate analyzeTableSpec(HiveObjectSpec spec) throws HiveMetastoreException, IOException {
     if (spec.isPartition()) {
       throw new RuntimeException("Argument should be a table " + spec);
     }
@@ -86,14 +85,12 @@ public class TaskEstimator {
     // If the souce table doesn't exist but the destination table doesn't,
     // then it's most likely a drop. 如果源表不存在但是目标表存在，很可能会drop操作。
     if (tableOnSrc == null && tableOnDest != null) {
-      return new TaskEstimate(TaskEstimate.TaskType.DROP_TABLE, false, false, Optional.empty(),
-          Optional.empty());
+      return new TaskEstimate(TaskEstimate.TaskType.DROP_TABLE, false, false, Optional.empty(), Optional.empty());
     }
 
     // Nothing to do if the source table doesn't exist　如果源表不存在，不操作
     if (tableOnSrc == null) {
-      return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
-          Optional.empty());
+      return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(), Optional.empty());
     }
 
     // If both src and dest exist, and the dest is newer, and we don't overwrite newer partitions,
@@ -105,20 +102,18 @@ public class TaskEstimator {
             spec,
             ReplicationUtils.getLastModifiedTime(tableOnSrc),
             ReplicationUtils.getLastModifiedTime(tableOnDest)));
-        return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
-            Optional.empty());
+        return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(), Optional.empty());
       }
     }
 
-    boolean isPartitionedTable = HiveUtils.isPartitioned(tableOnSrc);
+    boolean isPartitionedTable = HiveUtils.isPartitioned(tableOnSrc); //src表是否为分区表
 
     // See if we need to update the data
     // Locations are not defined for views
     boolean updateData = false;
     Optional<Path> srcPath = ReplicationUtils.getLocation(tableOnSrc);
 
-    Table expectedDestTable =
-        destObjectFactory.createDestTable(srcCluster, destCluster, tableOnSrc, tableOnDest);
+    Table expectedDestTable = destObjectFactory.createDestTable(srcCluster, destCluster, tableOnSrc, tableOnDest);
 
     Optional<Path> destPath = ReplicationUtils.getLocation(expectedDestTable);
 
@@ -129,17 +124,14 @@ public class TaskEstimator {
     // See if we need to update the metadata
     boolean updateMetadata =
         tableOnDest == null || !ReplicationUtils.stripNonComparables(tableOnDest)
-            .equals(ReplicationUtils.stripNonComparables(expectedDestTable));
+            .equals(ReplicationUtils.stripNonComparables(expectedDestTable));// metastore:比较src/dest 库表名，owner等等的元数据信息是否相等
 
     if (!updateData && !updateMetadata) {
-      return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
-          Optional.empty());
+      return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(), Optional.empty());
     } else if (!isPartitionedTable) {
-      return new TaskEstimate(TaskEstimate.TaskType.COPY_UNPARTITIONED_TABLE, updateMetadata,
-          updateData, srcPath, destPath);
+      return new TaskEstimate(TaskEstimate.TaskType.COPY_UNPARTITIONED_TABLE, updateMetadata, updateData, srcPath, destPath);
     } else {
-      return new TaskEstimate(TaskEstimate.TaskType.COPY_PARTITIONED_TABLE, true, false,
-          Optional.empty(), Optional.empty());
+      return new TaskEstimate(TaskEstimate.TaskType.COPY_PARTITIONED_TABLE, true, false, Optional.empty(), Optional.empty());
     }
   }
 
@@ -152,41 +144,35 @@ public class TaskEstimator {
     boolean updateData = false;
 
     HiveMetastoreClient srcMs = srcCluster.getMetastoreClient();
-    Partition partitionOnSrc =
-        srcMs.getPartition(spec.getDbName(), spec.getTableName(), spec.getPartitionName());
+    Partition partitionOnSrc = srcMs.getPartition(spec.getDbName(), spec.getTableName(), spec.getPartitionName());
 
     HiveMetastoreClient destMs = destCluster.getMetastoreClient();
-    Partition partitionOnDest =
-        destMs.getPartition(spec.getDbName(), spec.getTableName(), spec.getPartitionName());
+    Partition partitionOnDest = destMs.getPartition(spec.getDbName(), spec.getTableName(), spec.getPartitionName());
 
     // If the source partition does not exist, but the destination does,
     // it's most likely a drop.
-    if (partitionOnSrc == null && partitionOnDest != null) {
-      return new TaskEstimate(TaskEstimate.TaskType.DROP_PARTITION, false, false, Optional.empty(),
-          Optional.empty());
+    if (partitionOnSrc == null && partitionOnDest != null) { //如果src不存在,dest存在，删除分区操作
+      return new TaskEstimate(TaskEstimate.TaskType.DROP_PARTITION, false, false, Optional.empty(), Optional.empty());
     }
 
-    if (partitionOnSrc == null) {
-      return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
-          Optional.empty());
+    if (partitionOnSrc == null) {// src/desc　分区为空,不操作
+      return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(), Optional.empty());
     }
 
     // If both src and dest exist, and the dest is newer, and we don't overwrite newer partitions,
     // then it's a NO_OP.
-    if (!conf.getBoolean(ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER, true)) {
+    if (!conf.getBoolean(ConfigurationKeys.BATCH_JOB_OVERWRITE_NEWER, true)) {//如果dest分区数据较新是否覆盖，默认为true覆盖;false走此逻辑NO_OP
       if (ReplicationUtils.isSrcOlder(partitionOnSrc, partitionOnDest)) {
         LOG.warn(String.format(
             "Source %s (%s) is older than destination (%s), so not copying",
             spec,
             ReplicationUtils.getLastModifiedTime(partitionOnSrc),
             ReplicationUtils.getLastModifiedTime(partitionOnDest)));
-        return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
-            Optional.empty());
+        return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(), Optional.empty());
       }
     }
 
-    Partition expectedDestPartition = destObjectFactory.createDestPartition(srcCluster, destCluster,
-        partitionOnSrc, partitionOnDest);
+    Partition expectedDestPartition = destObjectFactory.createDestPartition(srcCluster, destCluster, partitionOnSrc, partitionOnDest);
 
     Optional<Path> srcPath = ReplicationUtils.getLocation(partitionOnSrc);
     Optional<Path> destPath = ReplicationUtils.getLocation(expectedDestPartition);
@@ -198,16 +184,12 @@ public class TaskEstimator {
 
     // A metadata update is required if the destination partition doesn't
     // exist or the metadata differs from what's expected.
-    boolean updateMetadata =
-        partitionOnDest == null || !ReplicationUtils.stripNonComparables(partitionOnDest)
-            .equals(ReplicationUtils.stripNonComparables(expectedDestPartition));
+    boolean updateMetadata = partitionOnDest == null || !ReplicationUtils.stripNonComparables(partitionOnDest).equals(ReplicationUtils.stripNonComparables(expectedDestPartition));
 
     if (!updateData && !updateMetadata) {
-      return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(),
-          Optional.empty());
+      return new TaskEstimate(TaskEstimate.TaskType.NO_OP, false, false, Optional.empty(), Optional.empty());
     } else {
-      return new TaskEstimate(TaskEstimate.TaskType.COPY_PARTITION, updateMetadata, updateData,
-          srcPath, destPath);
+      return new TaskEstimate(TaskEstimate.TaskType.COPY_PARTITION, updateMetadata, updateData, srcPath, destPath);
     }
   }
 }

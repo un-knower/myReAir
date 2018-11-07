@@ -74,8 +74,7 @@ public class Stage1PartitionCompareReducer extends Reducer<LongWritable, Text, T
     throws IOException, InterruptedException {
 
     for (Text value : values) {
-      Pair<TaskEstimate, HiveObjectSpec> input =
-          MetastoreReplicationJob.deseralizeJobResult(value.toString());
+      Pair<TaskEstimate, HiveObjectSpec> input = MetastoreReplicationJob.deseralizeJobResult(value.toString());
       TaskEstimate estimate = input.getLeft();
       HiveObjectSpec spec = input.getRight();
       String result = value.toString();

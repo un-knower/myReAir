@@ -135,11 +135,11 @@ public class TableCompareWorker {
     // Table exists in source, but not in dest. It should copy the table.
     TaskEstimate estimate = estimator.analyze(spec);
     ArrayList<String> ret = new ArrayList<>();
-
-    ret.add(MetastoreReplicationJob.serializeJobResult(estimate, spec));
+//    COPY_UNPARTITIONED_TABLE/枚举       true    true    hdfs://ns1/user/hive/warehouse/customer_center.db/customer_order_pms_class_freq_interest        hdfs://ns2/user/hive/warehouse/customer_center.db/customer_order_pms_class_freq_interest     customer_center customer_order_pms_class_freq_interest  NULL
+    ret.add(MetastoreReplicationJob.serializeJobResult(estimate, spec));//estimate封装了任务的操作，如cp分区表/非分区表或者不操作
 
     Table tab = srcClient.getTable(db, table);
-    if (tab != null && tab.getPartitionKeys().size() > 0) {
+    if (tab != null && tab.getPartitionKeys().size() > 0) { //如果src表是分区表
       // For partitioned table, if action is COPY we need to make sure to handle partition key
       // change case first. The copy task will be run twice once here and the other time at commit
       // phase. The task will handle the case properly.
@@ -152,13 +152,13 @@ public class TableCompareWorker {
             dstCluster,
             spec,
             Optional.<Path>empty());
-        copyPartitionedTableTaskJob.runTask();
+        copyPartitionedTableTaskJob.runTask();//根据src/dest比较　执行 create/alter/no operation　db.table
       }
 
       // partition tables need to generate partitions.
       HashSet<String> partNames = Sets.newHashSet(srcClient.getPartitionNames(db, table));
       HashSet<String> dstPartNames = Sets.newHashSet(dstClient.getPartitionNames(db, table));
-      ret.addAll(Lists.transform(Lists.newArrayList(Sets.union(partNames, dstPartNames)),
+      ret.addAll(Lists.transform(Lists.newArrayList(Sets.union(partNames, dstPartNames)), //分区表操作既会有COPY_PARTITIONED_TABLE也会有CHECK_PARTITION在ret中
             new Function<String, String>() {
               public String apply(String str) {
                 return MetastoreReplicationJob.serializeJobResult(
