@@ -139,7 +139,7 @@ public class TableCompareWorker {
     ret.add(MetastoreReplicationJob.serializeJobResult(estimate, spec));//estimate封装了任务的操作，如cp分区表/非分区表或者不操作
 
     Table tab = srcClient.getTable(db, table);
-    if (tab != null && tab.getPartitionKeys().size() > 0) { //如果src表是分区表
+    if (tab != null && tab.getPartitionKeys().size() > 0) { //如果src表是分区表,并且分区数大于0
       // For partitioned table, if action is COPY we need to make sure to handle partition key
       // change case first. The copy task will be run twice once here and the other time at commit
       // phase. The task will handle the case properly.

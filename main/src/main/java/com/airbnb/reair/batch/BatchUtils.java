@@ -65,20 +65,19 @@ public class BatchUtils {
           FileStatus dstStatus = dstFs.getFileStatus(dstPath);
           // If it is not force update, and the file size are same we will not recopy.
           // This normally happens when we do retry run.
-          if (!forceUpdate && srcStatus.getLen() == dstStatus.getLen()) {
+          if (!forceUpdate && srcStatus.getLen() == dstStatus.getLen()) {//如果不强制刷新，src/desc文件大小相同 skip
             LOG.info("dst already exists. " + dstPath.toString());
             return "dst already exists. " + dstPath.toString();
           }
         }
 
         Path dstParentPath = new Path(dstDir);
-        if (!dstFs.exists(dstParentPath) && !dstFs.mkdirs(dstParentPath)) {
+        if (!dstFs.exists(dstParentPath) && !dstFs.mkdirs(dstParentPath)) { //如果dest路径不存在，并且创建路径失败
           LOG.info("Could not create directory: " + dstDir);
           return "Could not create directory: " + dstDir;
         }
 
-        Path tmpDstPath = new Path(
-            tmpDirPath,
+        Path tmpDstPath = new Path(tmpDirPath,
             "__tmp__copy__file_" + identifier + "_" + srcFileStatus.getFileName()
                 + "." + System.currentTimeMillis());
         if (dstFs.exists(tmpDstPath)) {
@@ -95,19 +94,17 @@ public class BatchUtils {
             srcStatus.getReplication(),
             srcStatus.getBlockSize(),
             progressable)) {
-          IOUtils.copyBytes(inputStream, outputStream, conf);
+          IOUtils.copyBytes(inputStream, outputStream, conf);//把srcFile拷贝到destCluster tmpDestPath
         }
 
-        if (forceUpdate && dstFs.exists(dstPath)) {
+        if (forceUpdate && dstFs.exists(dstPath)) {//如果强制刷新复制，并且destPath存在就做删除处理
           dstFs.delete(dstPath, false);
         }
 
         // If checksums exist and don't match, re-do the copy. If checksums do not exist, assume
         // that they match.
-        if (conf.getBoolean(ConfigurationKeys.BATCH_JOB_VERIFY_COPY_CHECKSUM, true)
-            && !FsUtils.checksumsMatch(conf, srcPath, tmpDstPath)
-            .map(Boolean::booleanValue)
-            .orElse(true)) {
+        if (conf.getBoolean(ConfigurationKeys.BATCH_JOB_VERIFY_COPY_CHECKSUM, true) //校验srcFile与copy tmpDstPath文件的checksum是否相同
+            && !FsUtils.checksumsMatch(conf, srcPath, tmpDstPath).map(Boolean::booleanValue).orElse(true)) {
           throw new IOException(String.format("Not renaming %s to %s since checksums do not match "
                   + "between %s and %s",
               tmpDstPath,
@@ -116,8 +113,8 @@ public class BatchUtils {
               tmpDstPath));
         }
 
-        dstFs.rename(tmpDstPath, dstPath);
-        dstFs.setTimes(dstPath, srcStatus.getModificationTime(), srcStatus.getAccessTime());
+        dstFs.rename(tmpDstPath, dstPath);// 如果匹配　rename操作
+        dstFs.setTimes(dstPath, srcStatus.getModificationTime(), srcStatus.getAccessTime()); //并且把文件的修改时间,访问时间修改为与src一致
         LOG.info(dstPath.toString() + " file copied");
         progressable.progress();
         return null;

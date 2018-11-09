@@ -72,8 +72,7 @@ public class Stage3CommitChangeMapper extends Mapper<LongWritable, Text, Text, T
   protected void map(LongWritable key, Text value, Context context)
       throws IOException, InterruptedException {
     try {
-      Pair<TaskEstimate, HiveObjectSpec> input =
-          MetastoreReplicationJob.deseralizeJobResult(value.toString());
+      Pair<TaskEstimate, HiveObjectSpec> input = MetastoreReplicationJob.deseralizeJobResult(value.toString());
       TaskEstimate estimate = input.getLeft();
       HiveObjectSpec spec = input.getRight();
       RunInfo status = null;
@@ -105,7 +104,7 @@ public class Stage3CommitChangeMapper extends Mapper<LongWritable, Text, Text, T
               dstCluster,
               spec,
               Optional.<Path>empty());
-          status = copyPartitionedTableTaskJob.runTask();
+          status = copyPartitionedTableTaskJob.runTask(); //跟stage1 map端校验一样
           context.write(value, new Text(status.getRunStatus().toString()));
           break;
 
@@ -120,7 +119,7 @@ public class Stage3CommitChangeMapper extends Mapper<LongWritable, Text, Text, T
               Optional.<Path>empty(),
               directoryCopier,
               false);
-          status = copyUnpartitionedTableTask.runTask();
+          status = copyUnpartitionedTableTask.runTask();//跟stage1 map端校验一样
           context.write(value, new Text(status.getRunStatus().toString()));
           break;
 

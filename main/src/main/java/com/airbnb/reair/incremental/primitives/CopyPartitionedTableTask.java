@@ -89,7 +89,7 @@ public class CopyPartitionedTableTask implements ReplicationTask {
     // Check the table that exists already in the destination cluster
     Table existingTable = destMs.getTable(spec.getDbName(), spec.getTableName());
 
-    Table destTable = objectModifier.createDestTable(srcCluster, destCluster, freshSrcTable, existingTable);//我们想要的最新的desttable
+    Table destTable = objectModifier.createDestTable(srcCluster, destCluster, freshSrcTable, existingTable); // 我们想要创建最新的desttable,　并没有真正的创建，只在在本地 local thrift object
 
 
     if (existingTable != null) {
@@ -107,8 +107,7 @@ public class CopyPartitionedTableTask implements ReplicationTask {
         }
       }
 
-      objectConflictHandler.handleCopyConflict(srcCluster, destCluster, freshSrcTable,
-          existingTable);
+      objectConflictHandler.handleCopyConflict(srcCluster, destCluster, freshSrcTable, existingTable);
     }
 
     // Refresh in case the conflict handler did something

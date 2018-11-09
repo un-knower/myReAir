@@ -67,7 +67,7 @@ public class TaskEstimator {
     if (!spec.isPartition()) { //stage1 的map肯定是非分区表
       return analyzeTableSpec(spec);
     } else {
-      return analyzePartitionSpec(spec);
+      return analyzePartitionSpec(spec);//stage1 的reduce分区表走这个逻辑
     }
   }
 

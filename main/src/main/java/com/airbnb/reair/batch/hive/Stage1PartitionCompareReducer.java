@@ -83,7 +83,7 @@ public class Stage1PartitionCompareReducer extends Reducer<LongWritable, Text, T
       try {
         if (estimate.getTaskType() == TaskEstimate.TaskType.CHECK_PARTITION) {
           // Table exists in source, but not in dest. It should copy the table.
-          TaskEstimate newEstimate = estimator.analyze(spec);
+          TaskEstimate newEstimate = estimator.analyze(spec);//把CHECK_PARTITION　变成　COPY_PARTITION/NO_OP
 
           result = MetastoreReplicationJob.serializeJobResult(newEstimate, spec);
         }

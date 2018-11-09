@@ -58,7 +58,7 @@ public class Stage2DirectoryCopyReducer extends Reducer<LongWritable, Text, Text
       SimpleFileStatus fileStatus = new SimpleFileStatus(srcFileName, size, 0L);
       FileSystem srcFs = (new Path(srcFileName)).getFileSystem(this.conf);
       FileSystem dstFs = (new Path(dstDirectory)).getFileSystem(this.conf);
-      String result = BatchUtils.doCopyFileAction(
+      String result = BatchUtils.doCopyFileAction(  //重试三次
           conf,
           fileStatus,
           srcFs,
@@ -68,11 +68,10 @@ public class Stage2DirectoryCopyReducer extends Reducer<LongWritable, Text, Text
           context,
           false,
           context.getTaskAttemptID().toString());
-      if (result == null) {
+      if (result == null) { //return null　已经拷贝成功了.并写出　COPIED  hdfs://ns1/user/hive/warehouse/customer_center.db/customer_order_pms_class_freq_interest/part-00055-50529438-8ddc-4d46-be4d-91d9e89e49f3-c000   hdfs://ns2/user/hive/warehouse/customer_center.db/customer_order_pms_class_freq_interest     6874894         1541495797855
         context.write(new Text(CopyStatus.COPIED.toString()),
-            new Text(ReplicationUtils.genValue(value.toString(), " ",
-                String.valueOf(System.currentTimeMillis()))));
-      } else {
+            new Text(ReplicationUtils.genValue(value.toString(), " ", String.valueOf(System.currentTimeMillis()))));
+      } else { //校验没通过包括异常等等问题，会跳过
         context.write(
             new Text(CopyStatus.SKIPPED.toString()),
             new Text(ReplicationUtils.genValue(

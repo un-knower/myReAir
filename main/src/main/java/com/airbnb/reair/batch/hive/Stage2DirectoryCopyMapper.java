@@ -76,11 +76,11 @@ public class Stage2DirectoryCopyMapper extends Mapper<LongWritable, Text, LongWr
     Path dstPath = new Path(dst);
 
     FileSystem fs = dstPath.getFileSystem(conf);
-    if (fs.exists(dstPath) && !fs.delete(dstPath, true)) {
+    if (fs.exists(dstPath) && !fs.delete(dstPath, true)) { //dest存在并且递归删除没有成功，抛异常
       throw new IOException("Failed to delete destination directory: " + dstPath.toString());
     }
 
-    if (fs.exists(dstPath)) {
+    if (fs.exists(dstPath)) {//destpath依然存在，抛异常
       throw new IOException("Validate delete destination directory failed: " + dstPath.toString());
     }
 
@@ -88,9 +88,8 @@ public class Stage2DirectoryCopyMapper extends Mapper<LongWritable, Text, LongWr
       return;
     }
 
-    if (!fs.mkdirs(dstPath)) {
-      throw new IOException("Validate recreate destination directory failed: "
-          + dstPath.toString());
+    if (!fs.mkdirs(dstPath)) { //如果清理成功，重新创建失败，抛异常
+      throw new IOException("Validate recreate destination directory failed: " + dstPath.toString());
     }
   }
 
@@ -104,7 +103,7 @@ public class Stage2DirectoryCopyMapper extends Mapper<LongWritable, Text, LongWr
 
     LOG.info("updateDirectory:" + dst.toString());
 
-    hdfsCleanDirectory(db, table, partition, dst.toString(), this.conf, true);
+    hdfsCleanDirectory(db, table, partition, dst.toString(), this.conf, true); //清理destPath并重新创建
 
     try {
       FileSystem srcFs = src.getFileSystem(this.conf);
@@ -114,8 +113,7 @@ public class Stage2DirectoryCopyMapper extends Mapper<LongWritable, Text, LongWr
         LOG.info("file: " + status.getPath().toString());
 
         long hashValue = Hashing.murmur3_128().hashLong(
-            (long) (Long.valueOf(status.getLen()).hashCode()
-              * Long.valueOf(status.getModificationTime()).hashCode())).asLong();
+            (long) (Long.valueOf(status.getLen()).hashCode() * Long.valueOf(status.getModificationTime()).hashCode())).asLong();
 
         context.write(
             new LongWritable(hashValue),
