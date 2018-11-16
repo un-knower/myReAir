@@ -56,11 +56,8 @@ public class ReplicationLauncher {
    * @throws ConfigurationException if there is an error with the supplied configuration
    * @throws IOException if there is an error communicating with services
    */
-  public static void launch(Configuration conf,
-      Optional<Long> startAfterAuditLogId,
-      boolean resetState)
-    throws AuditLogEntryException, ConfigurationException, IOException, StateUpdateException,
-      SQLException {
+  public static void launch(Configuration conf, Optional<Long> startAfterAuditLogId, boolean resetState)
+    throws AuditLogEntryException, ConfigurationException, IOException, StateUpdateException, SQLException {
     // Create statsd registry
     boolean statsDEnabled = conf.getBoolean(ConfigurationKeys.STATSD_ENABLED, false);
     StatsDClient statsDClient;
@@ -75,24 +72,18 @@ public class ReplicationLauncher {
     }
 
     // Create the audit log reader
-    String auditLogJdbcUrl = conf.get(
-        ConfigurationKeys.AUDIT_LOG_JDBC_URL);
-    String auditLogDbUser = conf.get(
-        ConfigurationKeys.AUDIT_LOG_DB_USER);
-    String auditLogDbPassword = conf.get(
-        ConfigurationKeys.AUDIT_LOG_DB_PASSWORD);
+    String auditLogJdbcUrl = conf.get(ConfigurationKeys.AUDIT_LOG_JDBC_URL);
+    String auditLogDbUser = conf.get(ConfigurationKeys.AUDIT_LOG_DB_USER);
+    String auditLogDbPassword = conf.get(ConfigurationKeys.AUDIT_LOG_DB_PASSWORD);
     DbConnectionFactory auditLogConnectionFactory =
         new StaticDbConnectionFactory(
             auditLogJdbcUrl,
             auditLogDbUser,
             auditLogDbPassword);
-    String auditLogTableName = conf.get(
-        ConfigurationKeys.AUDIT_LOG_DB_TABLE);
-    String auditLogObjectsTableName = conf.get(
-        ConfigurationKeys.AUDIT_LOG_OBJECTS_DB_TABLE);
-    String auditLogMapRedStatsTableName = conf.get(
-        ConfigurationKeys.AUDIT_LOG_MAPRED_STATS_DB_TABLE);
-
+    String auditLogTableName = conf.get(ConfigurationKeys.AUDIT_LOG_DB_TABLE);
+    String auditLogObjectsTableName = conf.get(ConfigurationKeys.AUDIT_LOG_OBJECTS_DB_TABLE);
+    String auditLogMapRedStatsTableName = conf.get(ConfigurationKeys.AUDIT_LOG_MAPRED_STATS_DB_TABLE);
+//　创建audit_log表 reader
     final AuditLogReader auditLogReader = new AuditLogReader(
         conf,
         auditLogConnectionFactory,
@@ -102,14 +93,10 @@ public class ReplicationLauncher {
         0);
 
     // Create the connection to the key value store in the DB
-    String stateJdbcUrl = conf.get(
-        ConfigurationKeys.STATE_JDBC_URL);
-    String stateDbUser = conf.get(
-        ConfigurationKeys.STATE_DB_USER);
-    String stateDbPassword = conf.get(
-        ConfigurationKeys.STATE_DB_PASSWORD);
-    String keyValueTableName = conf.get(
-        ConfigurationKeys.STATE_KV_DB_TABLE);
+    String stateJdbcUrl = conf.get(ConfigurationKeys.STATE_JDBC_URL);
+    String stateDbUser = conf.get(ConfigurationKeys.STATE_DB_USER);
+    String stateDbPassword = conf.get(ConfigurationKeys.STATE_DB_PASSWORD);
+    String keyValueTableName = conf.get(ConfigurationKeys.STATE_KV_DB_TABLE);
 
     DbConnectionFactory stateConnectionFactory =
         new StaticDbConnectionFactory(
@@ -121,8 +108,7 @@ public class ReplicationLauncher {
         stateConnectionFactory,
         keyValueTableName);
 
-    String stateTableName = conf.get(
-        ConfigurationKeys.STATE_DB_TABLE);
+    String stateTableName = conf.get(ConfigurationKeys.STATE_DB_TABLE);
 
     // Create the store for replication job info
     PersistedJobInfoStore persistedJobInfoStore =
@@ -142,8 +128,7 @@ public class ReplicationLauncher {
     final Cluster srcCluster = clusterFactory.getSrcCluster();
     final Cluster destCluster = clusterFactory.getDestCluster();
 
-    String objectFilterClassNames = conf.get(
-        ConfigurationKeys.OBJECT_FILTER_CLASS);
+    String objectFilterClassNames = conf.get(ConfigurationKeys.OBJECT_FILTER_CLASS);
 
     final List<ReplicationFilter> replicationFilters = new ArrayList<>();
     String[] classNames = objectFilterClassNames.split(",");
@@ -168,17 +153,11 @@ public class ReplicationLauncher {
       replicationFilters.add(filter);
     }
 
-    int numWorkers = conf.getInt(
-        ConfigurationKeys.WORKER_THREADS,
-        1);
+    int numWorkers = conf.getInt(ConfigurationKeys.WORKER_THREADS, 1);
 
-    int maxJobsInMemory = conf.getInt(
-        ConfigurationKeys.MAX_JOBS_IN_MEMORY,
-        100);
+    int maxJobsInMemory = conf.getInt(ConfigurationKeys.MAX_JOBS_IN_MEMORY, 100);
 
-    final int thriftServerPort = conf.getInt(
-        ConfigurationKeys.THRIFT_SERVER_PORT,
-        9996);
+    final int thriftServerPort = conf.getInt(ConfigurationKeys.THRIFT_SERVER_PORT, 9996);
 
     LOG.debug("Running replication server");
 
@@ -198,17 +177,13 @@ public class ReplicationLauncher {
 
     // Start thrift server
     final TReplicationService.Processor processor =
-        new TReplicationService.Processor<TReplicationService.Iface>(
-            replicationServer);
+        new TReplicationService.Processor<TReplicationService.Iface>(replicationServer);
 
     Runnable serverRunnable = new Runnable() {
       public void run() {
         try {
-          TServerTransport serverTransport = new TServerSocket(
-              thriftServerPort);
-          TServer server = new TSimpleServer(
-              new TServer.Args(
-                serverTransport).processor(processor));
+          TServerTransport serverTransport = new TServerSocket(thriftServerPort);
+          TServer server = new TSimpleServer(new TServer.Args(serverTransport).processor(processor));
 
           LOG.debug("Starting the thrift server on port " + thriftServerPort);
           server.serve();
@@ -223,11 +198,10 @@ public class ReplicationLauncher {
 
     // Start DB connection watchdog - kills the server if a DB connection
     // can't be made.
-    DbConnectionWatchdog dbConnectionWatchdog = new DbConnectionWatchdog(
-        stateConnectionFactory);
+    DbConnectionWatchdog dbConnectionWatchdog = new DbConnectionWatchdog(stateConnectionFactory);
     dbConnectionWatchdog.start();
 
-    // Start replicating entries
+    // Start replicating entries 入口
     try {
       replicationServer.run(Long.MAX_VALUE);
     } finally {
@@ -253,7 +227,7 @@ public class ReplicationLauncher {
         .withArgName("PATH")
         .create());
 
-    options.addOption(OptionBuilder.withLongOpt("start-after-id")
+    options.addOption(OptionBuilder.withLongOpt("start-after-id")//start-after-id参数可以跳过执行id
         .withDescription("Start processing entries from the audit "
             + "log after this ID")
         .hasArg()

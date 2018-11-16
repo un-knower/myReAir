@@ -240,8 +240,7 @@ public class ReplicationServer implements TReplicationService.Iface {
   private ReplicationJob restoreReplicationJob(PersistedJobInfo persistedJobInfo) {
     ReplicationTask replicationTask = null;
 
-    HiveObjectSpec tableSpec =
-        new HiveObjectSpec(persistedJobInfo.getSrcDbName(), persistedJobInfo.getSrcTableName());
+    HiveObjectSpec tableSpec = new HiveObjectSpec(persistedJobInfo.getSrcDbName(), persistedJobInfo.getSrcTableName());
     HiveObjectSpec partitionSpec = null;
 
     if (persistedJobInfo.getSrcPartitionNames().size() > 0) {
@@ -345,8 +344,7 @@ public class ReplicationServer implements TReplicationService.Iface {
    * @throws IOException if there's an error reading or writing to the filesystem
    * @throws SQLException if there's an error querying the DB
    */
-  public void run(long jobsToComplete)
-      throws AuditLogEntryException, IOException, StateUpdateException, SQLException {
+  public void run(long jobsToComplete) throws AuditLogEntryException, IOException, StateUpdateException, SQLException {
 
     // Clear the counters so that we can accurate stats for this run
     clearCounters();
@@ -355,22 +353,20 @@ public class ReplicationServer implements TReplicationService.Iface {
     // last persisted.
     long lastPersistedAuditLogId = 0;
 
-    if (startAfterAuditLogId.isPresent()) {
+    if (startAfterAuditLogId.isPresent()) { //任务启动的指定auditlog_id
       // The starting ID was specified
       lastPersistedAuditLogId = startAfterAuditLogId.get();
     } else {
       // Otherwise, start from the previous stop point
       LOG.debug("Fetching last persisted audit log ID");
-      Optional<String> lastPersistedIdString = keyValueStore.get(LAST_PERSISTED_AUDIT_LOG_ID_KEY);
+      Optional<String> lastPersistedIdString = keyValueStore.get(LAST_PERSISTED_AUDIT_LOG_ID_KEY); //读key_value表的value_string 字段，上次完成最大的last_persisted_id
 
-      if (!lastPersistedIdString.isPresent()) {
+      if (!lastPersistedIdString.isPresent()) {//如果key_value表中last_persisted_id不存在
         Optional<Long> maxId = auditLogReader.getMaxId();
         lastPersistedAuditLogId = maxId.orElse(Long.valueOf(0));
         LOG.warn(
             String.format(
-                "Since the last persisted ID was not "
-                    + "previously set, using max ID in the audit log: %s",
-                lastPersistedAuditLogId));
+                "Since the last persisted ID was not " + "previously set, using max ID in the audit log: %s", lastPersistedAuditLogId));
 
       } else {
         lastPersistedAuditLogId = Long.parseLong(lastPersistedIdString.get());

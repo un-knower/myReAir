@@ -127,8 +127,7 @@ public class PersistedJobInfoStore {
    */
   public synchronized List<PersistedJobInfo> getRunnableFromDb() throws SQLException {
     // Convert from ['a', 'b'] to "'a', 'b'"
-    String completedStateList = StringUtils.join(", ",
-        Lists.transform(Arrays.asList(completedStateStrings), new Function<String, String>() {
+    String completedStateList = StringUtils.join(", ", Lists.transform(Arrays.asList(completedStateStrings), new Function<String, String>() {
           public String apply(String str) {
             return String.format("'%s'", str);
           }
